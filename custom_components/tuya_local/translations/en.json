@@ -124,6 +124,20 @@
                     "description": "The IR device to send the command to. This is optional and only needed if the command was saved with a device."
                 }
             }
+        },
+        "refresh_dps": {
+            "name": "Refresh data points",
+            "description": "Ask a device to report the given data points now, instead of waiting for the next poll.",
+            "fields": {
+                "device_id": {
+                    "name": "Device",
+                    "description": "The tuya-local device to refresh."
+                },
+                "dps": {
+                    "name": "Data points",
+                    "description": "List of data point ids to request, for example [18, 19, 20] for current, power and voltage on many energy meters."
+                }
+            }
         }
     },
     "entity": {

@@ -549,6 +549,16 @@ class TuyaLocalDevice(object):
                 f"Failed to refresh device state for {self.name}.",
             )
 
+    async def async_update_dps(self, dps):
+        """Ask the device to report the given dps now.
+
+        The reply arrives through the receive loop like any other update.
+        """
+        await self._retry_on_failed_connection(
+            lambda: self._api.updatedps(dps, nowait=True),
+            f"Failed to request dps {dps} from {self.name}",
+        )
+
     def get_property(self, dps_id):
         cached_state = self._get_cached_state()
         return cached_state.get(dps_id)

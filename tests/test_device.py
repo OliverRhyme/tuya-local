@@ -776,3 +776,9 @@ async def test_receive_loop_fires_event_for_pushed_updates_only(subject, mocker)
         "name": "Some name",
         "dps": {"17": 85},
     }
+
+
+async def test_async_update_dps_requests_dps_without_waiting(subject):
+    await subject.async_update_dps([18, 19, 20])
+
+    subject._api.updatedps.assert_called_once_with([18, 19, 20], nowait=True)

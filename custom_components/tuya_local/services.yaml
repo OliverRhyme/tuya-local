@@ -20,3 +20,15 @@ send_learned_ir_command:
         entity:
           filter:
             domain: infrared
+refresh_dps:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: tuya_local
+    dps:
+      required: true
+      example: "[18, 19, 20]"
+      selector:
+        object:
