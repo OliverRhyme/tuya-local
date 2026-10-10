@@ -269,6 +269,18 @@ class TuyaLocalDevice(object):
                         log_json(poll),
                     )
                     full_poll = poll.pop("full_poll", False)
+                    if not full_poll:
+                        # Unsolicited updates are distinct from polled state: some
+                        # devices report increments (e.g. add_ele) that a full poll
+                        # repeats, so automations need each pushed update once.
+                        self._hass.bus.async_fire(
+                            "tuya_local_dps_report",
+                            {
+                                "device_id": self.dev_id,
+                                "name": self._name,
+                                "dps": dict(poll),
+                            },
+                        )
                     self._cached_state = self._cached_state | poll
                     self._cached_state["updated_at"] = time()
                     self._remove_properties_from_pending_updates(poll)

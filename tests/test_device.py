@@ -3,6 +3,7 @@ import logging
 from time import time
 
 import pytest
+from pytest_homeassistant_custom_component.common import async_capture_events
 
 # from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, EVENT_HOMEASSISTANT_STOP
 from custom_components.tuya_local.const import CONF_DEVICE_ID, DOMAIN
@@ -756,3 +757,22 @@ async def test_refresh_error_914_stays_quiet_when_rotating_protocols(
         await subject.async_refresh()
 
     assert caplog.text == ""
+
+
+async def test_receive_loop_fires_event_for_pushed_updates_only(subject, mocker):
+    events = async_capture_events(subject._hass, "tuya_local_dps_report")
+
+    async def updates():
+        yield {"17": 85, "full_poll": False}  # pushed by the device
+        yield {"17": 85, "18": 1667, "full_poll": True}  # full poll repeats it
+
+    mocker.patch.object(subject, "async_receive", updates)
+    await subject.receive_loop()
+    await subject._hass.async_block_till_done()
+
+    assert len(events) == 1
+    assert events[0].data == {
+        "device_id": "some_dev_id",
+        "name": "Some name",
+        "dps": {"17": 85},
+    }
