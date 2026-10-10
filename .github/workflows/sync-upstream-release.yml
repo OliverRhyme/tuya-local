@@ -1,0 +1,53 @@
+name: Sync with upstream release
+
+# Keeps this branch as the latest make-all/tuya-local release plus the
+# commits on top of it. Runs daily; when upstream publishes a new release the
+# commits are rebased onto it, tested, and pushed. A failed rebase or test run
+# fails the job and leaves the branch untouched.
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Find the latest upstream release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --tags https://github.com/make-all/tuya-local.git
+          tag=$(gh api repos/make-all/tuya-local/releases/latest --jq .tag_name)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if git merge-base --is-ancestor "$tag" HEAD; then
+            echo "Already based on $tag"
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Rebase onto the release
+        if: steps.release.outputs.current != 'true'
+        env:
+          BOT: github-actions[bot]
+        run: |
+          git config user.name "$BOT"
+          git config user.email "41898282+$BOT@users.noreply.github.com"
+          git rebase "${{ steps.release.outputs.tag }}"
+      - name: Install uv
+        if: steps.release.outputs.current != 'true'
+        uses: astral-sh/setup-uv@v7
+      - name: Test
+        if: steps.release.outputs.current != 'true'
+        run: |
+          sudo apt-get update && sudo apt-get install -y libturbojpeg
+          uv run pytest -q
+      - name: Push
+        if: steps.release.outputs.current != 'true'
+        run: git push --force-with-lease origin "HEAD:${GITHUB_REF_NAME}"
